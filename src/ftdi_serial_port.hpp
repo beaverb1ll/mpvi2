@@ -12,6 +12,7 @@ class FtdiSerialPort : public SerialPort {
  public:
 
   FtdiSerialPort(const std::string &serial_num);
+  ~FtdiSerialPort();
 
   bool read(std::vector<uint8_t> &data, const uint8_t num_bytes) override;
   bool write(const std::vector<uint8_t> &msg) override;
@@ -22,8 +23,13 @@ class FtdiSerialPort : public SerialPort {
   bool flush() override;
   bool reset() override;
 
+  uint32_t get_num_rx_bytes() override;
+  bool wait_for_bytes(const uint32_t num_bytes) override;
+  bool wait_for_rx() override;
+
  private:
   FT_HANDLE ftHandle_{nullptr};
+  EVENT_HANDLE eh_;
 
 };
 

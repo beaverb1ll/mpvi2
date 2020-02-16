@@ -1,7 +1,9 @@
 
 #include "ftdi_serial_port.hpp"
 
+#include <chrono>
 #include <stdexcept>
+#include <thread>
 
 FtdiSerialPort::FtdiSerialPort(const std::string &serial_num) {
   ftHandle_ = FT_W32_CreateFile(serial_num.c_str(), 0xC0000000, /*GENERIC_READ|GENERIC_WRITE*/
@@ -21,6 +23,15 @@ FtdiSerialPort::FtdiSerialPort(const std::string &serial_num) {
     printf("unable to set comm timeouts\n");
   }
   FT_SetLatencyTimer(ftHandle_, 2);
+
+  pthread_mutex_init(&eh_.eMutex, NULL);
+  pthread_cond_init(&eh_.eCondVar, NULL);
+}
+
+FtdiSerialPort::~FtdiSerialPort() {
+  if(ftHandle_) {
+    FT_W32_CloseHandle(ftHandle_);
+  }
 }
 
 bool FtdiSerialPort::read(std::vector<uint8_t> &data, const uint8_t num_bytes) {
@@ -141,3 +152,97 @@ bool FtdiSerialPort::reset() {
   const FT_STATUS status = FT_ResetDevice(ftHandle_);
   return status == FT_OK;
 }
+
+uint32_t FtdiSerialPort::get_num_rx_bytes() {
+  FTCOMSTAT newCS;
+  DWORD dwErrors;
+  if(!FT_W32_ClearCommError(ftHandle_, &dwErrors, (FTCOMSTAT *)&newCS)) {
+    return 0;
+  }
+  return newCS.cbInQue;
+}
+
+bool FtdiSerialPort::wait_for_rx() {
+  FT_SetEventNotification(ftHandle_, FT_EVENT_RXCHAR, (PVOID)&eh_);
+  pthread_mutex_lock(&eh_.eMutex);
+  pthread_cond_wait(&eh_.eCondVar, &eh_.eMutex);
+  pthread_mutex_unlock(&eh_.eMutex);
+  return true;
+}
+
+bool FtdiSerialPort::wait_for_bytes(const uint32_t num_bytes) {
+  while(get_num_rx_bytes() < num_bytes) {
+    wait_for_rx();
+  }
+  return true;
+}
+
+
+
+  // FT_STATUS ftStatus;
+  // DWORD numDevs;
+  // ftStatus = FT_ListDevices(&numDevs,NULL,FT_LIST_NUMBER_ONLY);
+  // if (ftStatus == FT_OK) {
+  //   printf("Got %d\n", numDevs);
+  // // FT_ListDevices OK, number of devices connected is in numDevs
+  // }
+  // else {
+  //   printf("Got none\n");
+  // // FT_ListDevices failed
+  // }
+
+
+  // WORD devIndex = 0; // first device
+  // char Buffer[64]; // more than enough room!
+  // ftStatus =
+  // FT_ListDevices((PVOID)devIndex,Buffer,FT_LIST_BY_INDEX|FT_OPEN_BY_SERIAL_NUMBER);
+  // if (ftStatus == FT_OK) {
+  // // FT_ListDevices OK, serial number is in Buffer
+  //   printf("Serial: %s\n", Buffer);
+  // }
+  // else {
+  //   printf("no serial\n");
+  // // FT_ListDevices failed
+  // }
+
+  // // create the device information list
+  // ftStatus = FT_CreateDeviceInfoList(&numDevs);
+  // if (ftStatus == FT_OK) {
+  // printf("Number of devices is %d\n",numDevs);
+  // }
+  // else {
+  //   printf("no device info list\n");
+  // // FT_CreateDeviceInfoList failed
+  // }
+  // if (numDevs > 0) {
+  // // allocate storage for list based on numDevs
+  // FT_DEVICE_LIST_INFO_NODE *devInfo =
+  // (FT_DEVICE_LIST_INFO_NODE*)malloc(sizeof(FT_DEVICE_LIST_INFO_NODE)*numDevs);
+  // // get the device information list
+  // ftStatus = FT_GetDeviceInfoList(devInfo,&numDevs);
+  // if (ftStatus == FT_OK) {
+  // for (int i = 0; i < numDevs; i++) {
+  // printf("Dev %d:\n",i);
+  // printf(" Flags=0x%x\n",devInfo[i].Flags);
+  // printf(" Type=0x%x\n",devInfo[i].Type);
+  // printf(" ID=0x%x\n",devInfo[i].ID);
+  // printf(" LocId=0x%x\n",devInfo[i].LocId);
+  // printf(" SerialNumber=%s\n",devInfo[i].SerialNumber);
+  // printf(" Description=%s\n",devInfo[i].Description);
+  // printf(" ftHandle=0x%x\n",devInfo[i].ftHandle);
+  // }
+  // }
+  // free(devInfo);
+  // }
+
+
+  // FT_SetEventNotification(ftHandle_, FT_EVENT_RXCHAR, )
+  // std::vector<uint8_t> d1{0};
+  // write(d1);
+  // d1 = {0x02, 0x01, 0x02, 0x01, 0x04, 0x10, 0x52, 0xE7, 00};
+  // write(d1);
+  // d1.resize(63);
+  // read(d1, 63);
+  // for(int i = 0; i < 63; i++) {
+  //   printf("0x%02X ", d1[i]);
+  // }

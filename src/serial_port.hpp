@@ -37,6 +37,9 @@ class SerialPort {
   virtual bool set_framing(const DataBits data, const DataParity parity, DataStopBits stop_bits) = 0;
   virtual bool flush() = 0;
   virtual bool reset() = 0;
+  virtual uint32_t get_num_rx_bytes() = 0;
+  virtual bool wait_for_bytes(const uint32_t num_bytes) = 0;
+  virtual bool wait_for_rx() = 0;
 
 };
 

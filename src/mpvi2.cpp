@@ -7,8 +7,13 @@
 #include "crc.hpp"
 #undef CRCPP_USE_CPP11
 
+#include "ftdi_serial_port.hpp"
+
 const std::string Mpvi2::kSerialNumber{"MPVI00020"};
 const uint8_t Mpvi2::kEofByte = 0x0;
+
+Mpvi2::Mpvi2() : Mpvi2(std::make_shared<FtdiSerialPort>(kSerialNumber)) {
+}
 
 Mpvi2::Mpvi2(std::shared_ptr<SerialPort> serial) : serial_(serial) {
 
@@ -32,24 +37,33 @@ Mpvi2::Mpvi2(std::shared_ptr<SerialPort> serial) : serial_(serial) {
     printf("Unable to set flow control\n");
   }
 
-  device_id_ = read_device_id();
-  part_number_ = read_part_number();
-  read_hardware_version(hardware_version_major_, hardware_version_minor_, hardware_version_subminor_);
-
   decode_thread_ = std::thread([this](){
+    pthread_setname_np(pthread_self(), "decode_thread");
+    started_ = true;
     read_and_decode();
   });
-  //decode_thread_.detach();
+  while(!started_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
 
+//  device_id_ = read_device_id();
+//  part_number_ = read_part_number();
+//  read_hardware_version(hardware_version_major_, hardware_version_minor_, hardware_version_subminor_);
+//
   serial_->write({0x0});
-  serial_->write({0x02, 0x01, 0x02, 0x01, 0x04, 0x10, 0x52, 0xE7, 0x00});
+//  serial_->write({0x02, 0x01, 0x02, 0x01, 0x04, 0x10, 0x52, 0xE7, 0x00});
 }
 
 Mpvi2::~Mpvi2() {
-  keep_running_ = false;
+  kill();
   if(decode_thread_.joinable()) {
     decode_thread_.join();
   }
+}
+
+void Mpvi2::kill() {
+  keep_running_ = false;
+  can_msgs_cv_.notify_all();
 }
 
 void Mpvi2::read_and_decode() {
@@ -57,23 +71,34 @@ void Mpvi2::read_and_decode() {
   std::vector<uint8_t> command;
   std::vector<uint8_t> temp;
   while(keep_running_) {
-    serial_->wait_for_rx();
-    auto rx_bytes = serial_->get_num_rx_bytes();
-    while(rx_bytes > 0) {
-      serial_->read(temp, 1);
-      data.insert(data.end(), temp[0]);
-      if(temp[0] == kEofByte) {
-        remove_zeros(data, command);
+
+    serial_->wait_for_rx(std::chrono::milliseconds(2000));
+    const auto rx_bytes = serial_->get_num_rx_bytes();
+    if(rx_bytes < 1) {
+      continue;
+    }
+    if(!serial_->read(temp, rx_bytes)) {
+      printf("read failed\n");
+      continue;
+    }
+
+    for(int i = 0; i < rx_bytes; i++) {
+      data.insert(data.end(), temp[i]);
+      if(data.back() == kEofByte) {
+        restore_zeros(data, command);
         data.clear();
+        decode(command);
       }
-      rx_bytes--;
     }
   }
 }
 
 void Mpvi2::decode(const std::vector<uint8_t> &command) {
-  const uint16_t type = command[0] << 8 | command[1];
+  const uint16_t type = (command[0] << 8) | command[1];
   switch(type) {
+    case 0x01: // internal
+      printf("Got internal response\n");
+      break;
     case 0x1C: // CAN
       decode_can(command);
       break;
@@ -85,8 +110,9 @@ void Mpvi2::decode(const std::vector<uint8_t> &command) {
 
 void Mpvi2::decode_can(const std::vector<uint8_t> &command) {
   CanMsg msg;
-  msg.id = (command[2] << 24) | (command[3] << 16) | (command[4] << 8) | (command[5]);
-  std::copy(command.begin() + 6, command.end() - 3, msg.data.begin());
+  msg.length = 8;
+  msg.id = (command[3] << 8) | command[4];
+  std::copy(command.begin() + 5, command.end() - 3, msg.data.begin());
   std::unique_lock<std::mutex> lk(can_msgs_mutex_);
   can_msgs_.push_back(msg);
   lk.unlock();
@@ -125,31 +151,19 @@ void Mpvi2::remove_zeros(const std::vector<uint8_t> &in, std::vector<uint8_t> &o
 
 void Mpvi2::restore_zeros(const std::vector<uint8_t> &in, std::vector<uint8_t> &out) {
   out = in;
-  bool is_within_zero_block = true;
   for(int i = 0; i < in.size(); i++) {
-    if(is_within_zero_block) {
-      out[i] = 0x0;
-      if(in[i] != 0x1) {
-        i+=(in[i]-1);
-        is_within_zero_block = false;
-      }
-    } else {
-      if(in[i] == 0x1) {
-        is_within_zero_block = true;
-        out[i] = 0x0;
-      }
+    if(in[i] == kEofByte) {
+      continue;
+    }
+    out[i] = 0x0;
+    if(in[i] != 0x1) {
+      i+=(in[i]-1);
     }
   }
 }
 
 bool Mpvi2::get_next_can_msg(CanMsg &msg) {
-  std::unique_lock<std::mutex> lk(can_msgs_mutex_);
-  if(can_msgs_.size() < 1) {
-    can_msgs_cv_.wait(lk, [this]{return can_msgs_.size() > 0;});
-  }
-  msg = can_msgs_.front();
-  can_msgs_.pop_front();
-  return true;
+  return get_next_can_msg(msg, std::chrono::seconds::max());
 }
 
 uint32_t Mpvi2::send_command(const std::vector<uint8_t> &command,
@@ -219,7 +233,7 @@ uint32_t Mpvi2::get_vehicle_connected_time() {
   std::vector<uint8_t> response;
   uint32_t v_conn_time = 0;
   //if(send_command(command, 14, response)) {
-  //  v_conn_time = (response[14] << 24) | (response[15] << 16) | (response[16] << 8) | (response[17]);
+  //  v_conn_time = (response[7] << 24) | (response[8] << 16) | (response[9] << 8) | (response[10]);
   //}
   return v_conn_time;
 }
@@ -253,7 +267,7 @@ bool Mpvi2::send_can(const CanMsg &msg) {
   input.push_back(id_8[1]);
   input.push_back(id_8[0]);
 
-  for(int i = 0; i < msg.data.size(); i++) {
+  for(int i = 0; i < msg.length; i++) {
     input.push_back(msg.data[i]);
   }
 

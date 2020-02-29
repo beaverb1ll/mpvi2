@@ -12,17 +12,14 @@
 #include <vector>
 
 #include "serial_port.hpp"
+#include "can_msg.hpp"
 
 class Mpvi2 {
  public:
   static const std::string kSerialNumber;
   static const uint8_t kEofByte;
 
-  struct CanMsg {
-    uint32_t id;
-    std::array<uint8_t, 8> data;
-  };
-
+  Mpvi2();
   Mpvi2(std::shared_ptr<SerialPort> serial);
   ~Mpvi2();
 
@@ -33,7 +30,11 @@ class Mpvi2 {
   bool get_hardware_version(uint16_t &major, uint16_t &minor, uint16_t &subminor);
   bool send_can(const CanMsg &msg);
 
+  template< class Rep, class Period >
+  bool get_next_can_msg(CanMsg &msg, const std::chrono::duration<Rep, Period>& rel_time);
+
   bool get_next_can_msg(CanMsg &msg);
+  void kill();
 
  private:
 
@@ -55,6 +56,7 @@ class Mpvi2 {
   void decode_can(const std::vector<uint8_t> &command);
 
   std::atomic<bool> keep_running_{true};
+  std::atomic<bool> started_{false};
   std::shared_ptr<SerialPort> serial_;
   std::list<CanMsg> can_msgs_;
   std::mutex can_msgs_mutex_;
@@ -70,5 +72,20 @@ class Mpvi2 {
   uint16_t hardware_version_minor_;
   uint16_t hardware_version_subminor_;
 };
+
+template< class Rep, class Period >
+bool Mpvi2::get_next_can_msg(CanMsg &msg, const std::chrono::duration<Rep, Period>& rel_time) {
+  std::unique_lock<std::mutex> lk(can_msgs_mutex_);
+  if(can_msgs_.size() < 1) {
+    can_msgs_cv_.wait_for(lk, rel_time, [this]{return can_msgs_.size() > 0;});
+  }
+  if(can_msgs_.size() < 1) {
+    return false;
+  }
+  msg = can_msgs_.front();
+  can_msgs_.pop_front();
+  return true;
+}
+
 
 #endif

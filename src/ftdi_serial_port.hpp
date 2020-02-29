@@ -15,6 +15,7 @@ class FtdiSerialPort : public SerialPort {
   ~FtdiSerialPort();
 
   bool read(std::vector<uint8_t> &data, const uint8_t num_bytes) override;
+  bool read(std::vector<uint8_t> &data, const uint8_t num_bytes, const std::chrono::milliseconds &duration) override;
   bool write(const std::vector<uint8_t> &msg) override;
 
   bool set_baud_rate(const uint32_t rate) override;
@@ -25,7 +26,7 @@ class FtdiSerialPort : public SerialPort {
 
   uint32_t get_num_rx_bytes() override;
   bool wait_for_bytes(const uint32_t num_bytes) override;
-  bool wait_for_rx() override;
+  bool wait_for_rx(const std::chrono::milliseconds &timeout = std::chrono::milliseconds::max()) override;
 
  private:
   FT_HANDLE ftHandle_{nullptr};

@@ -35,8 +35,15 @@ FtdiSerialPort::~FtdiSerialPort() {
 }
 
 bool FtdiSerialPort::read(std::vector<uint8_t> &data, const uint8_t num_bytes) {
+  return read(data, num_bytes, std::chrono::milliseconds::max());
+}
+
+bool FtdiSerialPort::read(std::vector<uint8_t> &data,
+    const uint8_t num_bytes, const std::chrono::milliseconds &duration) {
+
   DWORD dwRead;
   data.resize(num_bytes);
+
   if (!FT_W32_ReadFile(ftHandle_, data.data(), num_bytes, &dwRead, nullptr)) {
     return false;
   }
@@ -162,10 +169,21 @@ uint32_t FtdiSerialPort::get_num_rx_bytes() {
   return newCS.cbInQue;
 }
 
-bool FtdiSerialPort::wait_for_rx() {
+bool FtdiSerialPort::wait_for_rx(const std::chrono::milliseconds &timeout) {
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+
+  const auto secs = timeout.count()/1000;
+  ts.tv_sec += secs;
+  ts.tv_nsec += ((timeout.count()  - secs*1000) * 1000);
+
   FT_SetEventNotification(ftHandle_, FT_EVENT_RXCHAR, (PVOID)&eh_);
   pthread_mutex_lock(&eh_.eMutex);
-  pthread_cond_wait(&eh_.eCondVar, &eh_.eMutex);
+  if(timeout == std::chrono::milliseconds::max()) {
+    pthread_cond_wait(&eh_.eCondVar, &eh_.eMutex);
+  } else {
+    pthread_cond_timedwait(&eh_.eCondVar, &eh_.eMutex, &ts);
+  }
   pthread_mutex_unlock(&eh_.eMutex);
   return true;
 }

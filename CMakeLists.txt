@@ -5,7 +5,7 @@ project(mpvi2-driver LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -16,5 +16,10 @@ find_package(GTest REQUIRED)
 pkg_check_modules(GMOCK REQUIRED gmock)
 pkg_check_modules(GMOCK_MAIN REQUIRED gmock_main)
 
+include_directories(
+${PROJECT_SOURCE_DIR}/src
+)
+
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(tools)

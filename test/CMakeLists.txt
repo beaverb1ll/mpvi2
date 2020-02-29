@@ -1,11 +1,22 @@
 enable_testing()
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
-set(TEST_NAME test_can_send)
+macro(add_test_executable TEST_NAME)
+  add_executable(${TEST_NAME} ${TEST_NAME}.cpp)
+  target_link_libraries(${TEST_NAME} PRIVATE ${REQUIRED_LIBS})
+  add_test(${TEST_NAME} ${TEST_NAME})
+endmacro()
 
-add_executable(${TEST_NAME}
-  ${TEST_NAME}.cpp
+
+set(REQUIRED_LIBS
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${GTEST_BOTH_LIBRARIES}
+  ${GMOCK_LIBRARIES}
+  serial_port
+  libftd2xx.so.1.4.8
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(${TEST_NAME} PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${GTEST_BOTH_LIBRARIES} ${GMOCK_LIBRARIES} serial_port)
-add_test(${TEST_NAME} ${TEST_NAME})
+add_test_executable(test_can_send)
+add_test_executable(test_can_receive)
+add_test_executable(test_can_obd)
+

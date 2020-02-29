@@ -9,6 +9,7 @@
 class MockSerialPort : public SerialPort {
  public:
   MOCK_METHOD2(read, bool(std::vector<uint8_t> &data, const uint8_t num_bytes));
+  MOCK_METHOD3(read, bool(std::vector<uint8_t> &data, const uint8_t num_bytes, const std::chrono::milliseconds &duration));
   MOCK_METHOD1(write, bool(const std::vector<uint8_t> &msg));
 
   MOCK_METHOD1(set_baud_rate, bool(const uint32_t rate));
@@ -17,8 +18,8 @@ class MockSerialPort : public SerialPort {
   MOCK_METHOD0(flush, bool());
   MOCK_METHOD0(reset, bool());
   MOCK_METHOD0(get_num_rx_bytes, uint32_t());
-  MOCK_METHOD0(wait_for_rx, bool());
-  MOCK_METHOD1( wait_for_bytes, bool(const uint32_t num_bytes));
+  MOCK_METHOD1(wait_for_rx, bool(const std::chrono::milliseconds&));
+  MOCK_METHOD1(wait_for_bytes, bool(const uint32_t num_bytes));
 };
 
 #endif

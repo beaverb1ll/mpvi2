@@ -31,7 +31,10 @@ else()
   message( STATUS "Using libftdi archive: ${LIBFTDI_LOCAL_FILE}" )
 endif()
 
-execute_process( COMMAND ${CMAKE_COMMAND} -E tar -zxf ${LIBFTDI_LOCAL_FILE} WORKING_DIRECTORY ${OUTPUT_DIR} )
+set(LIBFTDI_SO_PATH ${OUTPUT_DIR}/release/build/libftd2xx.so.${LIBFTDI_VERSION})
 
-set(FTDI_LIBRARIES ${OUTPUT_DIR}/release/build/libftd2xx.so.${LIBFTDI_VERSION})
+execute_process( COMMAND ${CMAKE_COMMAND} -E tar -zxf ${LIBFTDI_LOCAL_FILE} WORKING_DIRECTORY ${OUTPUT_DIR} )
+execute_process( COMMAND ${CMAKE_COMMAND} -E create_symlink ${LIBFTDI_SO_PATH} ${OUTPUT_DIR}/release/build/libftd2xx.so)
+
+set(FTDI_LIBRARIES ${LIBFTDI_SO_PATH})
 set(FTDI_INCLUDE_DIR ${OUTPUT_DIR}/release/)

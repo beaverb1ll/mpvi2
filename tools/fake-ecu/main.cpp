@@ -38,23 +38,11 @@ int main(int argc, char *argv[]) {
 }
 
 void send_response(SocketCan &can, const Obd2::Obd2Msg &msg) {
-  Obd2::Obd2Msg out;
+  Obd2::Obd2Msg out(msg.pid);
   out.can_id = 0x7E8;
   out.service = msg.service + Obd2::kServiceResponseOffset;
-  out.pid = msg.pid;
-  switch(msg.pid) {
-    case Obd2::kPidEngineRpm:
-      out.num_bytes = 2;
-      out.data[0] = 0;
-      out.data[1] = 0xC8;
-      break;
-    case Obd2::kPidAmbientAirTemp:
-      out.num_bytes = 1;
-      out.data[0] = 60;
-      break;
-    default:
-      printf("no response: %d\n", msg.pid);
-      return;
+  if(!out.encode_value(msg.pid)) {
+    return;
   }
   if(!can.write(out.get_can())) {
     printf("write failed\n");

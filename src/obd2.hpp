@@ -4,6 +4,8 @@
 #include <array>
 #include <bitset>
 #include <cstdint>
+#include <cstring>
+#include <limits>
 #include <vector>
 
 #include "can_msg.hpp"
@@ -167,8 +169,13 @@ struct Obd2Msg {
   uint32_t can_id;
   uint8_t num_bytes;
   uint8_t service;
-  uint8_t pid;
+  uint8_t pid = std::numeric_limits<uint8_t>::max();
   std::array<uint8_t, 4> data;
+
+  Obd2Msg(const uint8_t pid_in) : pid(pid_in){};
+  Obd2Msg() {};
+
+  bool encode_value(const double &value);
 
   bool operator==(const Obd2Msg &other) const {
     if(this->can_id != other.can_id ||
@@ -386,86 +393,124 @@ std::bitset<32> supported_pids(const Obd2Msg &msg) {
   return valid;
 }
 
-//bool encode_data_pid(const uint8_t pid, const double value, std::array<uint8_t, 4> &data) {
-//  switch(pid) {
-//
-//    case kPidEngineLoad:
-//      data[0] = value * 2.55;
-//      return true;
-//
-//    case kPidEngineCoolantTemp:
-//      data[0] = value + 40.0;
-//      return true;
-//
-//    case kPidShortTermFuelPercentBank1:
-//      // fallthrough
-//    case kPidLongTermFuelPercentBank1:
-//      // fallthrough
-//    case kPidShortTermFuelPercentBank2:
-//      // fallthrough
-//    case kPidLongTermFuelPercentBank2:
-//       (msg.data[0] / 1.28) - 100;
-//      return true;
-//
-//    case kPidFuelPressure:
-//      return msg.data[0] * 3.0;
-//
-//    case kPidIntakeManifoldPressureAbs:
-//      return msg.data[0];
-//
-//    case kPidEngineRpm:
-//      return ((msg.data[0] << 8) | msg.data[1])/4.0;
-//
-//    case kPidVehicleSpeed:
-//      return msg.data[0];
-//
-//    case kPidTimingAdvance:
-//      return (msg.data[0]/2.0) - 64;
-//
-//    case kPidIntakeAirTemp:
-//      return msg.data[0] - 40.0;
-//
-//    case kPidMafAirFlow:
-//      return ((msg.data[0] << 8) | msg.data[1])/100.0;
-//
-//    case kPidThrottlePosition:
-//      return (msg.data[0]/255) * 100.0;
-//
-//    case kPidCommandedSecondaryAir:
-//      return 0.0;
-//
-//    case kPidOxygenSensorPresent:
-//      return 0.0;
-//
-//    case kPidOxygenSensor1:
-//      // fallthrough
-//    case kPidOxygenSensor2:
-//      // fallthrough
-//    case kPidOxygenSensor3:
-//      // fallthrough
-//    case kPidOxygenSensor4:
-//      // fallthrough
-//    case kPidOxygenSensor5:
-//      // fallthrough
-//    case kPidOxygenSensor6:
-//      // fallthrough
-//    case kPidOxygenSensor7:
-//      // fallthrough
-//    case kPidOxygenSensor8:
-//      return 0.0;
-//
-//    case kPidAmbientAirTemp:
-//      return msg.data[0] - 40.0;
-//
-//
-//
-//
-//    default:
-//      printf("No Obd pid decode\n");
-//      break;
-//  }
-//  return 0;
-//}
+bool Obd2Msg::encode_value(const double &value) {
+  memset(data.data(), 0, sizeof(data));
+
+  switch(pid) {
+    case kPidSupported01To20:
+      data[0] = 0xFF;
+      data[1] = 0xFF;
+      data[2] = 0xFF;
+      data[3] = 0xFF;
+      return true;
+    case kPidSupported21To40:
+      data[1] = 0x04;
+      return true;
+    case kPidSupported41To60:
+      // all zeros; no change
+      return true;
+
+    case kPidEngineLoad:
+      data[0] = value * 2.55;
+      num_bytes = 1;
+      return true;
+
+    case kPidEngineCoolantTemp:
+      data[0] = value + 40.0;
+      num_bytes = 1;
+      return true;
+
+    case kPidShortTermFuelPercentBank1:
+      // fallthrough
+    case kPidLongTermFuelPercentBank1:
+      // fallthrough
+    case kPidShortTermFuelPercentBank2:
+      // fallthrough
+    case kPidLongTermFuelPercentBank2:
+      data[0] = (value + 100) * 1.28;
+      num_bytes = 1;
+      return true;
+
+    case kPidFuelPressure:
+      data[0] = value / 3.0;
+      num_bytes = 1;
+      return true;
+
+    case kPidIntakeManifoldPressureAbs:
+      data[0] = value;
+      num_bytes = 1;
+      return true;
+
+    case kPidEngineRpm: {
+        uint16_t temp = value*4;
+        data[0] = (temp >> 8);
+        data[1] = (temp & 0xFF);
+      }
+      num_bytes = 2;
+      return true;
+
+    case kPidVehicleSpeed:
+      num_bytes = 1;
+      data[0] = value;
+      return true;
+
+    case kPidTimingAdvance:
+      data[0] = (value + 64) *2.0;
+      num_bytes = 1;
+      return true;
+
+    case kPidIntakeAirTemp:
+      data[0] = value + 40.0;
+      num_bytes = 1;
+      return true;
+
+    case kPidMafAirFlow: {
+        uint16_t temp = value * 100.0;
+        data[0] = temp >> 8;
+        data[1] = temp & 0xFF;
+      }
+      num_bytes = 2;
+      return true;
+
+    case kPidThrottlePosition:
+      data[0] = (value /100) * 255;
+      num_bytes = 1;
+      return true;
+
+    case kPidCommandedSecondaryAir:
+      return false;
+
+    case kPidOxygenSensorPresent:
+      return false;
+
+    case kPidOxygenSensor1:
+      // fallthrough
+    case kPidOxygenSensor2:
+      // fallthrough
+    case kPidOxygenSensor3:
+      // fallthrough
+    case kPidOxygenSensor4:
+      // fallthrough
+    case kPidOxygenSensor5:
+      // fallthrough
+    case kPidOxygenSensor6:
+      // fallthrough
+    case kPidOxygenSensor7:
+      // fallthrough
+    case kPidOxygenSensor8:
+      return false;
+
+    case kPidAmbientAirTemp:
+      data[0] = value + 40.0;
+      num_bytes = 1;
+      return true;
+
+    default:
+      printf("No Obd pid decode\n");
+      break;
+  }
+  return false;
+}
 
 
 double decode_current_data_pid(const Obd2Msg &msg) {

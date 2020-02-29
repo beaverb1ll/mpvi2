@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.5)
 
 project(mpvi2-driver LANGUAGES CXX)
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+include(libftdi)
+message("${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SYSTEM_NAME}")
+
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)

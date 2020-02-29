@@ -5,7 +5,7 @@
 
 #include "serial_port.hpp"
 
-#include "/home/user/Downloads/libftd2xx-x86_64-1.4.8/release/ftd2xx.h"
+#include "ftd2xx.h"
 
 class FtdiSerialPort : public SerialPort {
 

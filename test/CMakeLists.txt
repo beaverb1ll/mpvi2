@@ -12,8 +12,8 @@ set(REQUIRED_LIBS
   ${CMAKE_THREAD_LIBS_INIT}
   ${GTEST_BOTH_LIBRARIES}
   ${GMOCK_LIBRARIES}
+  ${FTDI_LIBRARIES}
   serial_port
-  libftd2xx.so.1.4.8
 )
 
 add_test_executable(test_can_send)

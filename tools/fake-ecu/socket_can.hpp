@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-#include "can_msg.hpp"
+#include "obd2/can_msg.hpp"
 
 class SocketCan {
  public:

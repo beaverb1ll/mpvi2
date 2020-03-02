@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "can_msg.hpp"
-#include "obd2.hpp"
+#include "obd2/can_msg.hpp"
+#include "obd2/obd2.hpp"
 
 using ::testing::Return;
 using ::testing::Invoke;

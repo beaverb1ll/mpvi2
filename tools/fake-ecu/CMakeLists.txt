@@ -5,4 +5,4 @@ add_executable(fake-ecu
 )
 
 
-target_link_libraries(fake-ecu PRIVATE pthread)
+target_link_libraries(fake-ecu PRIVATE pthread obd2 utils)

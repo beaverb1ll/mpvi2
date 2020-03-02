@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "serial_port.hpp"
-#include "can_msg.hpp"
+#include "obd2/can_msg.hpp"
 
 class Mpvi2 {
  public:

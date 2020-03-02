@@ -1,3 +1,4 @@
+add_subdirectory(obd2)
 
 add_library(serial_port mpvi2.cpp ftdi_serial_port.cpp)
 
@@ -9,4 +10,4 @@ include_directories(SYSTEM
 )
 
 
-target_link_libraries(main1 PRIVATE pthread ${FTDI_LIBRARIES} serial_port)
+target_link_libraries(main1 PRIVATE pthread ${FTDI_LIBRARIES} serial_port obd2)

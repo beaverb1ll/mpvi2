@@ -5,8 +5,6 @@ project(mpvi2-driver LANGUAGES CXX)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 include(libftdi)
-message("${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SYSTEM_NAME}")
-
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -23,8 +21,10 @@ pkg_check_modules(GMOCK_MAIN REQUIRED gmock_main)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}/src
+${PROJECT_SOURCE_DIR}/lib
 )
 
+add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(tools)

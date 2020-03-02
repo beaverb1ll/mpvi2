@@ -16,15 +16,14 @@
 SocketCan::SocketCan(const std::string &device_name) {
   /* open socket */
   if ((socket_ = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
-    throw std::runtime_error("Unable to open can device");
+    throw std::runtime_error("Unable to create CAN socket");
   }
   struct ifreq ifr;
   std::strncpy(ifr.ifr_name, device_name.c_str(), IFNAMSIZ - 1);
   ifr.ifr_name[IFNAMSIZ - 1] = '\0';
   ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
   if (!ifr.ifr_ifindex) {
-    perror("if_nametoindex");
-    throw std::runtime_error("");
+    throw std::runtime_error("Unable to find SocketCan device: " + device_name);
   }
 
   struct sockaddr_can addr;
@@ -74,4 +73,3 @@ bool SocketCan::read(CanMsg &msg, const std::chrono::milliseconds &timeout) {
   memcpy(msg.data.data(), frame.data, frame.can_dlc);
   return true;
 }
-

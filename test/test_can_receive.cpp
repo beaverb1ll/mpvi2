@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "can_msg.hpp"
+#include "obd2/can_msg.hpp"
 #include "mpvi2.hpp"
 #include "mock_serial_port.hpp"
 

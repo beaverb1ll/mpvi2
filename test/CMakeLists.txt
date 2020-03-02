@@ -14,9 +14,12 @@ set(REQUIRED_LIBS
   ${GMOCK_LIBRARIES}
   ${FTDI_LIBRARIES}
   serial_port
+  obd2
+  utils
 )
 
 add_test_executable(test_can_send)
 add_test_executable(test_can_receive)
 add_test_executable(test_can_obd)
-
+add_test_executable(test_isotp)
+add_test_executable(test_arg_parse)

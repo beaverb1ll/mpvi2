@@ -2,6 +2,7 @@
 add_executable(fake-ecu
   main.cpp
   socket_can.cpp
+  ecu_obd2.cpp
 )
 
 

@@ -66,7 +66,7 @@ bool Obd2Msg::parse_response(const CanMsg &in, Obd2Msg &out) {
     return true;
   }
 
-CanMsg Obd2Msg::get_can() {
+CanMsg Obd2Msg::to_can() {
   CanMsg out;
   out.id = can_id;
   out.length = 8;
@@ -82,31 +82,10 @@ CanMsg Obd2Msg::get_can() {
   return out;
 }
 
-
 bool Obd2Msg::encode_value(const double &value) {
   memset(data.data(), 0, sizeof(data));
 
   switch(pid) {
-    case kPidSupported01To20:
-      data[0] = 0x00;
-      data[1] = 0x18;
-      data[2] = 0x01;
-      data[3] = 0x01;
-      num_bytes = 4;
-      return true;
-    case kPidSupported21To40:
-      data[3] = 0x01;
-      num_bytes = 4;
-      return true;
-    case kPidSupported41To60:
-      data[0] = 0x04;
-      data[3] = 0x01;
-      num_bytes = 4;
-      return true;
-    case kPidSupported61To80:
-      num_bytes = 4;
-      return true;
-
     case kPidEngineLoad:
       data[0] = value * 2.55;
       num_bytes = 1;
@@ -209,10 +188,6 @@ bool Obd2Msg::encode_value(const double &value) {
   return false;
 }
 
-
-
-
-
 double decode_current_data_pid(const Obd2Msg &msg) {
   switch(msg.pid) {
 
@@ -280,9 +255,6 @@ double decode_current_data_pid(const Obd2Msg &msg) {
 
     case kPidAmbientAirTemp:
       return msg.data[0] - 40.0;
-
-
-
 
     default:
       printf("No Obd pid decode\n");

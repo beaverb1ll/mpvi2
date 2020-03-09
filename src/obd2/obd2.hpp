@@ -205,7 +205,7 @@ struct Obd2Msg {
 
   static bool parse_response(const CanMsg &in, Obd2Msg &out);
 
-  CanMsg get_can();
+  CanMsg to_can();
 
 
   std::string pid_name() {

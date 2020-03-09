@@ -9,6 +9,8 @@
 #include "can_msg.hpp"
 #include "obd2.hpp"
 
+#include "utils.hpp"
+
 namespace IsoTp {
 
 constexpr const uint8_t kArbitrationIdOffset = 0x8;
@@ -70,7 +72,6 @@ class IsoTpReceiveMsg {
           data_.data[2] = rx.data[7];
           num_bytes_received_ += 3;
           state_ = kRxSendingFlowControl;
-          printf("Got valid response\n");
         }
         break;
       case kRxSendingFlowControl:
@@ -126,6 +127,7 @@ class IsoTpTransmitMsg {
     if(state_ == kTxAwaitingFlowControl &&
         rx.data[0] == 0x30) {
       state_ = kTxSending;
+      LOG_DEBUG(*UtilManager::logger(), "IsoTp Tx got flow control");
       return true;
     }
     return false;
@@ -143,11 +145,17 @@ class IsoTpTransmitMsg {
         out.data[2] = data_.service + Obd2::kServiceResponseOffset;
         out.data[3] = data_.pid;
         out.data[4] = 0x01;  // why is this a 1?
-        out.data[5] = data_.data[0];
-        out.data[6] = data_.data[1];
-        out.data[7] = data_.data[2];
-        num_bytes_sent_ += 3;
-        state_ = kTxAwaitingFlowControl;
+        for(int i = 0; i < 3 && i < data_.length; i++) {
+          out.data[5+i] = data_.data[i];
+          num_bytes_sent_++;
+        }
+        if(num_bytes_sent_ == data_.length) {
+          state_ = kTxComplete;
+          LOG_DEBUG(*UtilManager::logger(), "IsoTp Tx complete in 1 frame");
+        } else {
+          LOG_DEBUG(*UtilManager::logger(), "IsoTp Tx initialized. Awaiting flow control");
+          state_ = kTxAwaitingFlowControl;
+        }
         return true;
         break;
       case kTxAwaitingFlowControl:
@@ -158,11 +166,11 @@ class IsoTpTransmitMsg {
         out.data[0] = (0x2 << 4) | index_;
         std::copy_n(data_.data.begin()+num_bytes_sent_, 7, out.data.begin()+1);
         num_bytes_sent_ += 7;
-        printf("sending %d\n", index_);
+        LOG_DEBUG(*UtilManager::logger(), "IsoTp Tx sent index: %d", index_);
         index_++;
         if(num_bytes_sent_ >= data_.length) {
           state_ = kTxComplete;
-          printf("tx complete\n");
+          LOG_DEBUG(*UtilManager::logger(), "IsoTp Tx complete");
         }
         return true;
         break;

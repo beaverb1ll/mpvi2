@@ -17,7 +17,6 @@ void signal_handler(int signal) {
   keep_running = false;
 }
 
-const uint16_t ecu_address = Obd2::kEcuStartAddress;
 const std::string vin_num = "1GCNCNEH5JZABCDEF";
 
 int main(int argc, char *argv[]) {
@@ -25,14 +24,19 @@ int main(int argc, char *argv[]) {
   ArgParse args;
   args.register_option("device,d", "SocketCAN device", "can0");
   args.register_option("log-level", "Console log level", "info");
+  args.register_option("ecu-id", "ECU CAN ID", std::to_string(Obd2::kEcuStartAddress));
   args.parse(argc, argv);
 
   const auto log_level = args.get_option("log-level");
+  const auto can_device = args.get_option("device");
+  const uint16_t ecu_id = std::stoi(args.get_option("ecu-id"));
   printf("Log Level: %s\n", log_level.c_str());
+  printf("ECU CAN ID: 0x%04X\n", ecu_id);
+  printf("CAN Device: %s\n", can_device.c_str());
 
   UtilManager::set_logger(std::make_shared<ConsoleLogger>(log_level));
-  SocketCan can(args.get_option("device"));
-  EcuObd2 ecu(ecu_address);
+  SocketCan can(can_device);
+  EcuObd2 ecu(ecu_id);
   ecu.set_send_function([&](const CanMsg &msg){
     LOG_DEBUG(*UtilManager::logger(), "Tx: %s", msg.to_string().c_str());
     can.write(msg);

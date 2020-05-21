@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <functional>
+#include <stdexcept>
 #include <vector>
 
 #include <unistd.h>

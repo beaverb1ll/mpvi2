@@ -31,7 +31,7 @@ void EcuObd2::set_pid_supported(const Obd2::Services service, const uint8_t pid)
 
 bool EcuObd2::process_rx_packet(const CanMsg &msg) {
 
-  if(msg.id != ecu_can_id_ && msg.id != Obd2::kBroadcastAddress) {
+  if(msg.id != ecu_can_id_ && msg.id != Obd2::kEcuBroadcastAddress) {
     return false;
   }
 

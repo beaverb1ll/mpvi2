@@ -43,7 +43,7 @@ SocketCan::~SocketCan() {
   }
 }
 
-bool SocketCan::write(const CanMsg &msg) {
+bool SocketCan::write_can(const CanMsg &msg) {
   struct can_frame frame;
   frame.can_id = msg.id;
   frame.can_dlc= msg.length;
@@ -55,7 +55,7 @@ bool SocketCan::write(const CanMsg &msg) {
   return true;
 }
 
-bool SocketCan::read(CanMsg &msg, const std::chrono::milliseconds &timeout) {
+bool SocketCan::read_can(CanMsg &msg, const std::chrono::milliseconds &timeout) {
   struct pollfd fd;
   fd.fd = socket_;
   fd.events = POLLIN;

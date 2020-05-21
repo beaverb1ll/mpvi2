@@ -12,7 +12,7 @@
 
 namespace Obd2 {
 static constexpr const uint16_t kObd2RequestResponseAddressOffset = 8;
-static constexpr const uint16_t kBroadcastAddress = 0x07DF;
+static constexpr const uint16_t kEcuBroadcastAddress = 0x07DF;
 static constexpr const uint16_t kEcuStartAddress = 0x07E0;
 static constexpr const uint16_t kEcuResponseAddress = kEcuStartAddress + kObd2RequestResponseAddressOffset;
 static constexpr const uint8_t kServiceResponseOffset = 0x40;
@@ -180,36 +180,8 @@ inline std::string to_string(const Services service) {
   return names[offset];
 }
 ;
-
-struct Obd2Msg {
-  static constexpr const uint8_t kMaxObd2DataBytes = 4;
-  static constexpr const uint8_t kNumBytesOffset = 0;
-  static constexpr const uint8_t kServiceOffset = 1;
-  static constexpr const uint8_t kPidOffset = 2;
-  static constexpr const uint8_t kDataOffset = 3;
-
-  uint32_t can_id;
-  uint8_t num_bytes;
-  uint8_t service;
-  uint8_t pid = std::numeric_limits<uint8_t>::max();
-  std::array<uint8_t, kMaxObd2DataBytes> data;
-
-  Obd2Msg(const uint8_t pid_in) : pid(pid_in){};
-  Obd2Msg() {};
-
-  bool encode_value(const double &value);
-
-  bool operator==(const Obd2Msg &other) const;
-
-  std::string to_string() const;
-
-  static bool parse_response(const CanMsg &in, Obd2Msg &out);
-
-  CanMsg to_can();
-
-
-  std::string pid_name() {
-    static const std::array<std::string, kNumService01Pids> names{
+inline std::string service_01_to_string(const uint8_t pid) {
+  static const std::array<std::string, kNumService01Pids> names{
     "kPidSupported01To20",
     "kPidMonitorStatus",
     "kPidFreezeDtc",
@@ -324,7 +296,44 @@ struct Obd2Msg {
     "kPidTurboComprPressure",
     "kPidBoostPressureCntrl",
     };
-    return names[pid];
+  return names[pid];
+}
+
+
+struct Obd2Msg {
+  static constexpr const uint8_t kMaxObd2DataBytes = 4;
+  static constexpr const uint8_t kNumBytesOffset = 0;
+  static constexpr const uint8_t kServiceOffset = 1;
+  static constexpr const uint8_t kPidOffset = 2;
+  static constexpr const uint8_t kDataOffset = 3;
+
+  uint32_t can_id;
+  uint8_t num_bytes;
+  uint8_t service;
+  uint8_t pid = std::numeric_limits<uint8_t>::max();
+  std::array<uint8_t, kMaxObd2DataBytes> data;
+
+  Obd2Msg(const uint8_t pid_in) : pid(pid_in){};
+  Obd2Msg() {};
+
+  bool encode_value(const double &value);
+
+  bool operator==(const Obd2Msg &other) const;
+
+  std::string to_string() const;
+
+  static bool parse_response(const CanMsg &in, Obd2Msg &out);
+
+  CanMsg to_can();
+
+
+  std::string pid_name() {
+    switch(service) {
+      case kService01CurrentData:
+        return service_01_to_string(pid);
+      default:
+        return "";
+    }
   }
 };
 

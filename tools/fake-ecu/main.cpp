@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   EcuObd2 ecu(ecu_id);
   ecu.set_send_function([&](const CanMsg &msg){
     LOG_DEBUG(*UtilManager::logger(), "Tx: %s", msg.to_string().c_str());
-    can.write(msg);
+    can.write_can(msg);
   });
   ecu.set_vin(vin_num);
   ecu.set_pid_supported(Obd2::kService01CurrentData, Obd2::kPidEngineRpm);
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
   CanMsg msg;
   while(keep_running) {
-    if(!can.read(msg, std::chrono::milliseconds(2000))) {
+    if(!can.read_can(msg, std::chrono::milliseconds(2000))) {
       LOG_TRACE(*UtilManager::logger(), "read failed");
       continue;
     }

@@ -13,7 +13,7 @@ set(REQUIRED_LIBS
   ${GTEST_BOTH_LIBRARIES}
   ${GMOCK_LIBRARIES}
   ${FTDI_LIBRARIES}
-  serial_port
+  mpvi2
   obd2
   utils
 )

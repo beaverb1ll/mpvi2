@@ -22,6 +22,13 @@ class ArgParseTest : public ::testing::Test {
   void TearDown() override {
   }
 
+  template <size_t M, size_t N>
+  void convert(const std::vector<std::string> &in, char (&out)[M][N]) {
+    for(int i = 0; i < in.size() && i < M; i++) {
+      strncpy(out[i], in[i].c_str(), N);
+    }
+  }
+
 };
 
 TEST_F(ArgParseTest, empty_flag) {

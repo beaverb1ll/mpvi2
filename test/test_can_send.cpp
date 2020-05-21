@@ -32,7 +32,7 @@ class CanSendTest : public ::testing::Test {
   void data_test_can(const CanMsg &msg, const std::vector<uint8_t> &out) {
     EXPECT_CALL(*serial_, write(out));
 
-    mpvi2_->send_can(msg);
+    mpvi2_->write_can(msg);
   }
 
   std::shared_ptr<MockSerialPort> serial_;

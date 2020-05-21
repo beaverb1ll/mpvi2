@@ -3,6 +3,7 @@
 #include <array>
 #include <chrono>
 #include <ctime>
+#include <stdexcept>
 #include <sys/time.h>
 
 #include "string_utils.hpp"

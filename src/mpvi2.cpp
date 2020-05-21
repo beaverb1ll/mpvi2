@@ -162,8 +162,17 @@ void Mpvi2::restore_zeros(const std::vector<uint8_t> &in, std::vector<uint8_t> &
   }
 }
 
-bool Mpvi2::get_next_can_msg(CanMsg &msg) {
-  return get_next_can_msg(msg, std::chrono::seconds::max());
+bool Mpvi2::read_can(CanMsg &msg, const std::chrono::milliseconds &timeout) {
+  std::unique_lock<std::mutex> lk(can_msgs_mutex_);
+  if(can_msgs_.size() < 1) {
+    can_msgs_cv_.wait_for(lk, timeout, [this]{return can_msgs_.size() > 0;});
+  }
+  if(can_msgs_.size() < 1) {
+    return false;
+  }
+  msg = can_msgs_.front();
+  can_msgs_.pop_front();
+  return true;
 }
 
 uint32_t Mpvi2::send_command(const std::vector<uint8_t> &command,
@@ -258,7 +267,7 @@ bool Mpvi2::read_hardware_version(uint16_t &major, uint16_t &minor, uint16_t &su
   return false;
 }
 
-bool Mpvi2::send_can(const CanMsg &msg) {
+bool Mpvi2::write_can(const CanMsg &msg) {
 
   std::vector<uint8_t> input{0x00, 0x1C};
   const uint8_t *id_8 = reinterpret_cast<const uint8_t*>(&msg.id);

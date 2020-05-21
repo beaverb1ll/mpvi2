@@ -46,15 +46,15 @@ TEST_F(CanReceiveTest, data1) {
     .WillOnce(Return(16))
     .WillRepeatedly(Return(0));
 
-  EXPECT_CALL(*serial_, read(_, 16, _))
+  EXPECT_CALL(*serial_, read(_, 16))
     .WillOnce(DoAll(SetArgReferee<0>(rx_data), Return(true)));
-  EXPECT_CALL(*serial_, read(_, 0, _))
+  EXPECT_CALL(*serial_, read(_, 0))
     .WillRepeatedly(Return(false));
 
   mpvi2_ = std::make_shared<Mpvi2>(serial_);
 
   CanMsg can_msg;
-  ASSERT_TRUE(mpvi2_->get_next_can_msg(can_msg));
+  ASSERT_TRUE(mpvi2_->read_can(can_msg));
 
   ASSERT_EQ(can_msg.id, truth.id);
 

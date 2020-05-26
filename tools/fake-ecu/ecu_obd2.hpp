@@ -4,6 +4,7 @@
 #include <bitset>
 #include <functional>
 #include <string>
+#include <unordered_map>
 
 #include "obd2/can_msg.hpp"
 #include "obd2/obd2.hpp"
@@ -25,12 +26,10 @@ class EcuObd2 {
 
   void set_send_function(const send_func_t &func);
   void set_vin(const std::string &vin);
-  void set_pid_supported(const Obd2::Services service, const uint8_t pid);
-
-
+  void set_pid_supported(const Obd2::Services service, const uint8_t pid, const bool enabled=true);
+  void set_pid_value(const Obd2::Services service, const uint8_t pid, const double value);
 
   bool process_rx_packet(const CanMsg &msg);
-
 
  private:
   void send_packet(const CanMsg &out);
@@ -44,6 +43,7 @@ class EcuObd2 {
   uint16_t ecu_can_id_;
   uint16_t ecu_response_id_;
   std::bitset<Obd2::kNumService01Pids> service01_supported_pids_;
+  std::unordered_map<Obd2::Service01Pid, double> service01_vals_;
   std::string vin_number_;
   send_func_t send_packet_func_;
 

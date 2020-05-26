@@ -1,8 +1,10 @@
 #ifndef FTDI_SERIAL_PORT_HPP_
 #define FTDI_SERIAL_PORT_HPP_
 
+#include <memory>
 #include <string>
 
+#include "logger.hpp"
 #include "serial_port.hpp"
 
 #include "ftd2xx.h"
@@ -28,10 +30,12 @@ class FtdiSerialPort : public SerialPort {
   bool wait_for_bytes(const uint32_t num_bytes) override;
   bool wait_for_rx(const std::chrono::milliseconds &timeout = std::chrono::milliseconds::max()) override;
 
+  void set_logger(std::shared_ptr<Logger> logger);
+
  private:
   FT_HANDLE ftHandle_{nullptr};
   EVENT_HANDLE eh_;
-
+  std::shared_ptr<Logger> logger_ = std::make_shared<Logger>();
 };
 
 #endif

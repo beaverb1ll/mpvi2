@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "can_if.hpp"
+#include "logger.hpp"
 #include "serial_port.hpp"
 #include "obd2/can_msg.hpp"
 
@@ -21,24 +22,29 @@ class Mpvi2 : public CanInterface {
   static const uint8_t kEofByte;
 
   Mpvi2();
+  Mpvi2(std::shared_ptr<Logger> logger);
   Mpvi2(std::shared_ptr<SerialPort> serial);
   ~Mpvi2();
 
-  uint32_t get_device_id();
-  uint16_t get_part_number();
+  uint32_t get_device_id() const;
+  uint16_t get_part_number() const;
   uint32_t get_power_on_time();
   uint32_t get_vehicle_connected_time();
-  bool get_hardware_version(uint16_t &major, uint16_t &minor, uint16_t &subminor);
+  bool get_hardware_version(uint16_t &major, uint16_t &minor, uint16_t &subminor) const;
   bool write_can(const CanMsg &msg) override;
 
   bool read_can(CanMsg &msg, const std::chrono::milliseconds &timeout = std::chrono::milliseconds::max()) override;
   void kill();
+
+  void set_logger(std::shared_ptr<Logger> logger);
 
  private:
 
   static void remove_zeros(const std::vector<uint8_t> &in, std::vector<uint8_t> &out);
   static void restore_zeros(const std::vector<uint8_t> &in, std::vector<uint8_t> &out);
   static uint16_t calculate_crc(const std::vector<uint8_t> &in);
+
+  void init();
 
   void read_and_decode();
   bool write(const std::vector<uint8_t> &data);
@@ -55,6 +61,8 @@ class Mpvi2 : public CanInterface {
 
   std::atomic<bool> keep_running_{true};
   std::atomic<bool> started_{false};
+
+  std::shared_ptr<Logger> logger_ = std::make_shared<Logger>();
   std::shared_ptr<SerialPort> serial_;
   std::list<CanMsg> can_msgs_;
   std::mutex can_msgs_mutex_;

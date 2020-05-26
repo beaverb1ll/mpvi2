@@ -149,7 +149,7 @@ bool Obd2Msg::encode_value(const double &value) {
       return true;
 
     case kPidThrottlePosition:
-      data[0] = (value /100) * 255;
+      data[0] = (value/100) * 255;
       num_bytes = 1;
       return true;
 

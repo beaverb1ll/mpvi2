@@ -1,7 +1,13 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <memory>
+#include <mutex>
+#include <thread>
 #include <QMainWindow>
+
+#include "ecu_obd2.hpp"
+#include "socket_can.hpp"
 
 QT_FORWARD_DECLARE_CLASS(QTableWidget)
 
@@ -15,8 +21,24 @@ class MainWindow : public QMainWindow {
   ~MainWindow();
 
  public slots:
+  void cellChanged(int nRow, int nCol);
 
  private:
+  enum Rows {
+    kRowEnable = 0,
+    kRowPid,
+    kRowName,
+    kRowValue,
+    kNumRows
+  };
+  void update_value(int nRow, int nCol);
+
+  std::atomic<bool> keep_running_{true};
+  std::unique_ptr<SocketCan> can_;
+  std::unique_ptr<EcuObd2> ecu_;
+  std::mutex mutex_;
+  std::thread thread_;
+
   QTableWidget *tableWidget_=nullptr;
   QStringList tableHeader_;
 

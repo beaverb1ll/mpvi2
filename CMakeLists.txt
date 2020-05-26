@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.5)
 
 project(mpvi2-driver LANGUAGES CXX)
 
+if(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "No build type specified. Defaulting to RelWithDebInfo")
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+  #Debug, Release, RelWithDebInfo, MinSizeRel
+endif()
+
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 include(libftdi)

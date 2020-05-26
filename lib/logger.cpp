@@ -53,8 +53,12 @@ Logger::LogLevel Logger::get_loglevel() {
   return current_level_;
 }
 
+bool Logger::is_level_enabled(const LogLevel &level) {
+  return enable_mask_[level];
+}
+
 void Logger::log(const Logger::LogLevel &level, const std::string &msg) {
-  if(enable_mask_[level]) {
+  if(is_level_enabled(level)) {
 
     timeval curTime;
     gettimeofday(&curTime, NULL);

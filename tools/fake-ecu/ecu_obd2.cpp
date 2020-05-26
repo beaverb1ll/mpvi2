@@ -3,9 +3,6 @@
 EcuObd2::EcuObd2(const uint16_t can_id) :
 ecu_can_id_(can_id), ecu_response_id_(can_id + Obd2::kObd2RequestResponseAddressOffset) {
   set_pid_supported(Obd2::kService01CurrentData, Obd2::kPidSupported01To20);
-  set_pid_supported(Obd2::kService01CurrentData, Obd2::kPidSupported21To40);
-  set_pid_supported(Obd2::kService01CurrentData, Obd2::kPidSupported41To60);
-  set_pid_supported(Obd2::kService01CurrentData, Obd2::kPidSupported61To80);
 }
 
 void EcuObd2::set_send_function(const send_func_t &func) {
@@ -23,9 +20,9 @@ void EcuObd2::set_vin(const std::string &vin) {
   vin_number_.resize(17); // only allow 17 digits in VIN
 }
 
-void EcuObd2::set_pid_supported(const Obd2::Services service, const uint8_t pid) {
+void EcuObd2::set_pid_supported(const Obd2::Services service, const uint8_t pid, const bool enabled) {
   if(service == Obd2::kService01CurrentData) {
-    service01_supported_pids_[pid] = true;
+    service01_supported_pids_[pid] = enabled;
   }
 }
 
@@ -98,6 +95,10 @@ void EcuObd2::send_response(const Obd2::Obd2Msg &request) {
   send_packet(response);
 }
 
+void EcuObd2::set_pid_value(const Obd2::Services service, const uint8_t pid, const double value) {
+  service01_vals_[static_cast<Obd2::Service01Pid>(pid)] = value;
+}
+
 bool EcuObd2::process_service01(const Obd2::Obd2Msg &request, CanMsg &out) {
   LOG_TRACE(*UtilManager::logger(), "process_service01");
   Obd2::Obd2Msg response;
@@ -117,7 +118,7 @@ bool EcuObd2::process_service01(const Obd2::Obd2Msg &request, CanMsg &out) {
     break;
 
     default:
-    valid = response.encode_value(request.pid);
+    valid = response.encode_value(service01_vals_[static_cast<Obd2::Service01Pid>(request.pid)]);
     break;
   }
   if(!valid) {
@@ -130,9 +131,9 @@ bool EcuObd2::process_service01(const Obd2::Obd2Msg &request, CanMsg &out) {
 
 bool EcuObd2::encode_service_01_supported_pid(Obd2::Obd2Msg &out) {
   if(out.pid != Obd2::kPidSupported01To20 &&
-    out.pid !=  Obd2::kPidSupported21To40 &&
-    out.pid !=  Obd2::kPidSupported41To60 &&
-    out.pid !=  Obd2::kPidSupported61To80) {
+     out.pid != Obd2::kPidSupported21To40 &&
+     out.pid != Obd2::kPidSupported41To60 &&
+     out.pid != Obd2::kPidSupported61To80) {
     return false;
   }
 

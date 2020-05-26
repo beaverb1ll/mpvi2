@@ -17,4 +17,4 @@ add_executable(fake-ecu-gui
 )
 
 target_link_libraries(fake-ecu PRIVATE pthread fake-ecu-libs socket_can obd2 utils)
-target_link_libraries(fake-ecu-gui PRIVATE Qt5::Widgets pthread fake-ecu-libs obd2 utils)
+target_link_libraries(fake-ecu-gui PRIVATE Qt5::Widgets pthread fake-ecu-libs socket_can obd2 utils)

@@ -6,7 +6,7 @@
 #include "logger.hpp"
 
 struct Utils {
-  std::shared_ptr<Logger> logger_;
+  std::shared_ptr<Logger> logger_ = std::make_shared<Logger>();
 };
 
 class UtilManager {

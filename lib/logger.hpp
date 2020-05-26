@@ -29,6 +29,7 @@ class Logger {
   LogLevel get_loglevel();
 
   void log(const LogLevel &level, const std::string &msg);
+  bool is_level_enabled(const LogLevel &level);
 
  protected:
   virtual void log_raw(const std::string &msg) {};
@@ -43,9 +44,11 @@ class Logger {
 
 template <typename... Args>
 void LOG(Logger &logger, const Logger::LogLevel &level, const Args ... args) {
-  char temp[Logger::kMaxMsgLength];
-  snprintf(temp, Logger::kMaxMsgLength, args...);
-  logger.log(level, temp);
+  if(logger.is_level_enabled(level)) {
+    char temp[Logger::kMaxMsgLength];
+    snprintf(temp, Logger::kMaxMsgLength, args...);
+    logger.log(level, temp);
+  }
 }
 
 template <typename... Args>

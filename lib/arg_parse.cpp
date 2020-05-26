@@ -15,9 +15,20 @@ ArgParse::ArgParse() {
   register_flag("help,h", "Show this menu");
 }
 
-bool ArgParse::parse(const int argc, char * const  argv[]) {
+bool ArgParse::parse(const int argc, const char * const  argv[]) {
   if(parsed_) {
     return false;
+  }
+
+  // make a copy of argv to manipulate
+  char* argv_copy[argc];
+  std::vector<std::vector<char>> argv_vector;
+  argv_vector.resize(argc);
+  for(int i = 0; i < argc; i++) {
+    const size_t len = strlen(argv[i]);
+    argv_vector[i].resize(len+1); // add 1 for trailing null
+    memcpy(argv_vector[i].data(), argv[i], len);
+    argv_copy[i] = argv_vector[i].data();
   }
 
   std::vector<struct option> long_options;
@@ -48,7 +59,7 @@ bool ArgParse::parse(const int argc, char * const  argv[]) {
   while(true) {
 
     int option_index = 0;
-    const int c = getopt_long(argc, argv, short_options.c_str(), long_options.data(), &option_index);
+    const int c = getopt_long(argc, argv_copy, short_options.c_str(), long_options.data(), &option_index);
 
     if (c == -1) {
       break;
@@ -69,11 +80,11 @@ bool ArgParse::parse(const int argc, char * const  argv[]) {
         break;
 
       case ':':
-        throw std::runtime_error("Argument \'" + std::string{argv[optind-1]} + "\' requires value");
+        throw std::runtime_error("Argument \'" + std::string{argv_copy[optind-1]} + "\' requires value");
         break;
 
       case '?':
-        throw std::runtime_error("Non-registered option encountered: " + std::string{argv[optind-1]});
+        throw std::runtime_error("Non-registered option encountered: " + std::string{argv_copy[optind-1]});
         break;
 
       default: {
@@ -87,7 +98,7 @@ bool ArgParse::parse(const int argc, char * const  argv[]) {
     }
   }
   for (int i = optind; i < argc; i++) {
-    non_options_.emplace_back(argv[i]);
+    non_options_.emplace_back(argv_copy[i]);
   }
 
   parsed_ = true;

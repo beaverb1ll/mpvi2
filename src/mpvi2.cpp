@@ -12,31 +12,55 @@
 const std::string Mpvi2::kSerialNumber{"MPVI00020"};
 const uint8_t Mpvi2::kEofByte = 0x0;
 
-Mpvi2::Mpvi2() : Mpvi2(std::make_shared<FtdiSerialPort>(kSerialNumber)) {
+Mpvi2::Mpvi2() {
+  serial_ = std::make_shared<FtdiSerialPort>(kSerialNumber);
+  init();
+}
+
+Mpvi2::Mpvi2(std::shared_ptr<Logger> logger) : logger_(logger) {
+  auto serial = std::make_shared<FtdiSerialPort>(kSerialNumber);
+  serial->set_logger(logger);
+  serial_ = serial;
+  init();
 }
 
 Mpvi2::Mpvi2(std::shared_ptr<SerialPort> serial) : serial_(serial) {
+  init();
+}
+
+void Mpvi2::init() {
 
   if (!serial_->reset()) {
-    printf("Unable to reset\n");
+    LOG_FATAL(*logger_, "Unable to reset");
   }
 
   if(!serial_->flush()) {
-    printf("Unable to flush\n");
+    LOG_FATAL(*logger_, "Unable to flush");
   }
 
   if (!serial_->set_baud_rate(3000000)) {
-    printf("Unable to set baud\n");
+    LOG_FATAL(*logger_, "Unable to set baud");
   }
 
   if(!serial_->set_framing(SerialPort::kDataBits8, SerialPort::kDataParityNone, SerialPort::kDataStopBits1)) {
-    printf("Unable to set data framing\n");
+    LOG_FATAL(*logger_, "Unable to set data framing");
   }
 
   if (!serial_->set_flow_control(SerialPort::kDataFlowControlRtsCts)) {
-    printf("Unable to set flow control\n");
+    LOG_FATAL(*logger_, "Unable to set flow control");
   }
 
+  // wait a little while to let everything init
+  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+  // always send 0x0 on startup
+  serial_->write({0x0});
+
+  device_id_ = read_device_id();
+  part_number_ = read_part_number();
+  read_hardware_version(hardware_version_major_, hardware_version_minor_, hardware_version_subminor_);
+
+//  serial_->write({0x02, 0x01, 0x02, 0x01, 0x04, 0x10, 0x52, 0xE7, 0x00});
   decode_thread_ = std::thread([this](){
     pthread_setname_np(pthread_self(), "decode_thread");
     started_ = true;
@@ -45,13 +69,6 @@ Mpvi2::Mpvi2(std::shared_ptr<SerialPort> serial) : serial_(serial) {
   while(!started_) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
-
-//  device_id_ = read_device_id();
-//  part_number_ = read_part_number();
-//  read_hardware_version(hardware_version_major_, hardware_version_minor_, hardware_version_subminor_);
-//
-  serial_->write({0x0});
-//  serial_->write({0x02, 0x01, 0x02, 0x01, 0x04, 0x10, 0x52, 0xE7, 0x00});
 }
 
 Mpvi2::~Mpvi2() {
@@ -78,7 +95,7 @@ void Mpvi2::read_and_decode() {
       continue;
     }
     if(!serial_->read(temp, rx_bytes)) {
-      printf("read failed\n");
+      LOG_ERROR(*logger_, "read failed");
       continue;
     }
 
@@ -97,7 +114,7 @@ void Mpvi2::decode(const std::vector<uint8_t> &command) {
   const uint16_t type = (command[0] << 8) | command[1];
   switch(type) {
     case 0x01: // internal
-      printf("Got internal response\n");
+      LOG_INFO(*logger_, "Got internal response\n");
       break;
     case 0x1C: // CAN
       decode_can(command);
@@ -117,6 +134,10 @@ void Mpvi2::decode_can(const std::vector<uint8_t> &command) {
   can_msgs_.push_back(msg);
   lk.unlock();
   can_msgs_cv_.notify_one();
+}
+
+void Mpvi2::set_logger(std::shared_ptr<Logger> logger) {
+  logger_ = logger;
 }
 
 bool Mpvi2::write(const std::vector<uint8_t> &data) {
@@ -181,21 +202,24 @@ uint32_t Mpvi2::send_command(const std::vector<uint8_t> &command,
   remove_zeros(command, temp);
   serial_->flush();
   if(!write(temp)) {
+    LOG_ERROR(*logger_, "Unable to write in send_command");
     return false;
   }
 
   if(!serial_->wait_for_bytes(response_size)) {
+    LOG_ERROR(*logger_, "Unable to wait in send_command");
     return false;
   }
 
   if(!read(temp, response_size)) {
+    LOG_ERROR(*logger_, "Unable to read response in send_command");
     return false;
   }
   restore_zeros(temp, response);
   return true;
 }
 
-uint32_t Mpvi2::get_device_id() {
+uint32_t Mpvi2::get_device_id() const {
   return device_id_;
 }
 
@@ -210,9 +234,10 @@ uint32_t Mpvi2::read_device_id() {
   return dev_id;
 }
 
-uint16_t Mpvi2::get_part_number() {
+uint16_t Mpvi2::get_part_number() const {
   return part_number_;
 }
+
 uint16_t Mpvi2::read_part_number() {
   const std::vector<uint8_t> command{0x00, 0x01, 0x00, 0x01, 0x00, 0x15, 0x02, 0x42, 0x00};
 
@@ -247,7 +272,7 @@ uint32_t Mpvi2::get_vehicle_connected_time() {
   return v_conn_time;
 }
 
-bool Mpvi2::get_hardware_version(uint16_t &major, uint16_t &minor, uint16_t &subminor) {
+bool Mpvi2::get_hardware_version(uint16_t &major, uint16_t &minor, uint16_t &subminor) const {
   major = hardware_version_major_;
   minor = hardware_version_minor_;
   subminor = hardware_version_subminor_;

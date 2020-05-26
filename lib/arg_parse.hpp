@@ -9,7 +9,7 @@ class ArgParse {
  public:
   ArgParse();
 
-  bool parse(const int argc, char * const argv[]);
+  bool parse(const int argc, const char * const argv[]);
 
   bool register_flag(const std::string &name, const std::string &description);
   bool register_option(const std::string &name, const std::string &description, const std::string &default_val="");

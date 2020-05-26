@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   UtilManager::set_logger(std::make_shared<ConsoleLogger>(log_level));
 
   try {
-    mpvi2 = std::make_unique<Mpvi2>();
+    mpvi2 = std::make_unique<Mpvi2>(UtilManager::logger());
   } catch(const std::runtime_error &e) {
     LOG_FATAL(*UtilManager::logger(), "Unable to open MPVI2. Exiting...");
     return -1;

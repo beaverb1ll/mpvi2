@@ -71,7 +71,7 @@ TEST_F(ArgParseTest, reg_list) {
 TEST_F(ArgParseTest, parse_flag) {
   ArgParse arg;
   arg.register_flag("TestFlag", "flag desc");
-  char *argv[2]{"app_name", "--TestFlag"};
+  const char *argv[2]{"app_name", "--TestFlag"};
   ASSERT_TRUE(arg.parse(2, argv));
 
   EXPECT_TRUE(arg.get_flag("TestFlag"));
@@ -82,7 +82,7 @@ TEST_F(ArgParseTest, parse_flag) {
 TEST_F(ArgParseTest, parse_option) {
   ArgParse arg;
   arg.register_option("TestOption", "option desc", "cats");
-  char *argv[2]{"app_name", "--TestOption=Hello"};
+  const char *argv[2]{"app_name", "--TestOption=Hello"};
   ASSERT_TRUE(arg.parse(2, argv));
 
   EXPECT_STREQ(arg.get_option("TestOption").c_str(), "Hello");
@@ -93,7 +93,7 @@ TEST_F(ArgParseTest, parse_option) {
 TEST_F(ArgParseTest, parse_list) {
   ArgParse arg;
   arg.register_list("test-list", "list desc");
-  char * argv[4]{"app_name", "--test-list=a", "--test-list=b", "--test-list=c" };
+  const char * argv[4]{"app_name", "--test-list=a", "--test-list=b", "--test-list=c" };
   ASSERT_TRUE(arg.parse(4, argv));
 
   const std::vector<std::string> truth{"a", "b", "c"};
@@ -108,7 +108,7 @@ TEST_F(ArgParseTest, non_options) {
   arg.register_option("test-option", "option desc");
 
 
-  char * argv[5]{"app_name", "aa", "--test-option=b", "dd", "cc" };
+  const char * argv[5]{"app_name", "aa", "--test-option=b", "dd", "cc" };
   ASSERT_TRUE(arg.parse(5, argv));
 
   const std::vector<std::string> truth{"aa", "dd", "cc"};

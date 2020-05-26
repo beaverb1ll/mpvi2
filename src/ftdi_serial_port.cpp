@@ -20,7 +20,7 @@ FtdiSerialPort::FtdiSerialPort(const std::string &serial_num) {
   ftTS.WriteTotalTimeoutMultiplier = 0;
   ftTS.WriteTotalTimeoutConstant = 200;
   if (!FT_W32_SetCommTimeouts(ftHandle_, &ftTS)) {
-    printf("unable to set comm timeouts\n");
+    throw std::runtime_error("Unable to set FTDI comm timeouts");
   }
   FT_SetLatencyTimer(ftHandle_, 2);
 
@@ -32,6 +32,10 @@ FtdiSerialPort::~FtdiSerialPort() {
   if(ftHandle_) {
     FT_W32_CloseHandle(ftHandle_);
   }
+}
+
+void FtdiSerialPort::set_logger(std::shared_ptr<Logger> logger) {
+  logger_ = logger;
 }
 
 bool FtdiSerialPort::read(std::vector<uint8_t> &data, const uint8_t num_bytes) {
@@ -190,7 +194,8 @@ bool FtdiSerialPort::wait_for_rx(const std::chrono::milliseconds &timeout) {
 
 bool FtdiSerialPort::wait_for_bytes(const uint32_t num_bytes) {
   while(get_num_rx_bytes() < num_bytes) {
-    wait_for_rx();
+    LOG_TRACE(*logger_, "FTDI wait_for_bytes");
+    wait_for_rx(std::chrono::milliseconds(5));
   }
   return true;
 }

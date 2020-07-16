@@ -64,11 +64,14 @@ void Logger::log(const Logger::LogLevel &level, const std::string &msg) {
     gettimeofday(&curTime, NULL);
     const int milli = curTime.tv_usec / 1000;
     char buffer [80];
-    if(!std::strftime(buffer, 80, "%T", localtime(&curTime.tv_sec))) {
+    if(!std::strftime(buffer, sizeof(buffer), "%T", localtime(&curTime.tv_sec))) {
       buffer[0] = '0';
       buffer[1] = '\0';
     }
-    printf("%s.%03d [%s] %s\n", buffer, milli, get_level_name(level).c_str(), msg.c_str());
+
+    char temp[Logger::kMaxMsgLength];
+    snprintf(temp, Logger::kMaxMsgLength, "%s.%03d [%s] %s\n", buffer, milli, get_level_name(level).c_str(), msg.c_str());
+    log_raw(temp);
   }
 }
 

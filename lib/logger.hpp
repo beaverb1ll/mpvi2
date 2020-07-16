@@ -46,7 +46,7 @@ template <typename... Args>
 void LOG(Logger &logger, const Logger::LogLevel &level, const Args ... args) {
   if(logger.is_level_enabled(level)) {
     char temp[Logger::kMaxMsgLength];
-    snprintf(temp, Logger::kMaxMsgLength, args...);
+    const auto num_needed = snprintf(temp, Logger::kMaxMsgLength, args...);
     logger.log(level, temp);
   }
 }

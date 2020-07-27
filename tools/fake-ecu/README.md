@@ -1,7 +1,7 @@
-##fake-ecu
+## fake-ecu
   Provides a test bed. only responds with hardcoded values compiled into main
 
-##fake-ecu-gui
+## fake-ecu-gui
   Provides a means of easily emulating an OBD-II ECU. Can easily enable/disable various PIDs and respond with specified values
 
 

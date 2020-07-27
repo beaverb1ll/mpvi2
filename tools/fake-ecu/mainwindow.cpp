@@ -26,12 +26,12 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
 {
   setObjectName("MainWindow");
   setWindowTitle("Fake OBD2 ECU");
-  tableWidget_ = new QTableWidget(Obd2::kNumService01Pids, kNumRows, this);
+  tableWidget_ = new QTableWidget(Obd2::kNumService01Pids, kNumColumns, this);
   tableWidget_->verticalHeader()->setVisible(false);
   tableWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
   tableWidget_->setItemDelegate(new Delegate);
 
-  tableHeader_<<"Enable"<<"PID"<<"Name"<<"Value";
+  tableHeader_<<"Enable"<<"PID"<<"Name"<<"Read Count"<<"Value";
   tableWidget_->setHorizontalHeaderLabels(tableHeader_);
   tableWidget_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
   tableWidget_->horizontalHeader()->setStretchLastSection(true);
@@ -44,24 +44,29 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
   for(int i = 0; i < Obd2::kNumService01Pids; i++) {
     item = new QTableWidgetItem();
     item->setCheckState(Qt::Unchecked);
-    tableWidget_->setItem(i, kRowEnable, item);
+    tableWidget_->setItem(i, kColumnEnable, item);
 
     item = new QTableWidgetItem(Obd2::service_01_to_string(i).c_str());
     item->setFlags(item->flags() ^ Qt::ItemIsEditable);
-    tableWidget_->setItem(i, kRowName, item);
+    tableWidget_->setItem(i, kColumnName, item);
 
     snprintf(buffer, sizeof(buffer), "0x%02X", i);
     item = new QTableWidgetItem(buffer);
     item->setFlags(item->flags() ^ Qt::ItemIsEditable);
-    tableWidget_->setItem(i, kRowPid, item);
+    tableWidget_->setItem(i, kColumnPid, item);
+
+    snprintf(buffer, sizeof(buffer), "%d", 0);
+    item = new QTableWidgetItem(buffer);
+    item->setFlags(item->flags() ^ Qt::ItemIsEditable);
+    tableWidget_->setItem(i, kColumnNumReads, item);
 
     ecu_->set_pid_value(Obd2::kService01CurrentData, i, 0.0);
     snprintf(buffer, sizeof(buffer), "%lf", 0.0);
     item = new QTableWidgetItem(buffer);
-    tableWidget_->setItem(i, kRowValue, item);
+    tableWidget_->setItem(i, kColumnValue, item);
 
     if(i == Obd2::kPidSupported01To20) {
-      item = tableWidget_->item(i, kRowEnable);
+      item = tableWidget_->item(i, kColumnEnable);
       item->setFlags(0);
       item->setCheckState(Qt::Checked);
     }
@@ -69,7 +74,7 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
        i == Obd2::kPidSupported21To40 ||
        i == Obd2::kPidSupported41To60 ||
        i == Obd2::kPidSupported61To80) {
-      item = tableWidget_->item(i, kRowValue);
+      item = tableWidget_->item(i, kColumnValue);
       item->setFlags(item->flags() ^ Qt::ItemIsEditable);
     }
   }
@@ -108,16 +113,20 @@ void MainWindow::cellChanged(int nRow, int nCol) {
   printf("Cell changed: %d %d\n", nRow, nCol);
   std::lock_guard<std::mutex> lk(mutex_);
   switch(nCol) {
-    case kRowEnable:
+    case kColumnEnable:
       // TODO: Update supportedPid row
       ecu_->set_pid_supported(Obd2::kService01CurrentData, nRow, tableWidget_->item(nRow, nCol)->checkState());
       break;
-    case kRowName:
-      // fallthrough
-    case kRowPid:
+    case kColumnName:
       // this is a read only field
       break;
-    case kRowValue:
+    case kColumnPid:
+      // this is a read only field
+      break;
+    case kColumnNumReads:
+      // non editable
+      break;
+    case kColumnValue:
       update_value(nRow, nCol);
       break;
     default:

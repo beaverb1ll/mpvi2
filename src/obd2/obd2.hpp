@@ -28,6 +28,7 @@ enum Services : uint8_t {
   kService08ControlOperations,
   kService09RequestInfo,
   kService0APermanentDtc,
+  kNumServices
 };
 
 enum Service01Pid : uint8_t {

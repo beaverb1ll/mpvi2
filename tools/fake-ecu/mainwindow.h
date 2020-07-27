@@ -24,12 +24,13 @@ class MainWindow : public QMainWindow {
   void cellChanged(int nRow, int nCol);
 
  private:
-  enum Rows {
-    kRowEnable = 0,
-    kRowPid,
-    kRowName,
-    kRowValue,
-    kNumRows
+  enum Columns {
+    kColumnEnable = 0,
+    kColumnPid,
+    kColumnName,
+    kColumnNumReads,
+    kColumnValue,
+    kNumColumns
   };
   void update_value(int nRow, int nCol);
 

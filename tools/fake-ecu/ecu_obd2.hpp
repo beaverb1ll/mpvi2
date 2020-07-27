@@ -31,6 +31,8 @@ class EcuObd2 {
 
   bool process_rx_packet(const CanMsg &msg);
 
+  uint32_t get_read_count(const Obd2::Services service, const uint8_t pid);
+
  private:
   void send_packet(const CanMsg &out);
   bool process_obd(const CanMsg &msg);
@@ -44,6 +46,7 @@ class EcuObd2 {
   uint16_t ecu_response_id_;
   std::bitset<Obd2::kNumService01Pids> service01_supported_pids_;
   std::unordered_map<Obd2::Service01Pid, double> service01_vals_;
+  std::array<std::unordered_map<uint8_t, uint32_t>, Obd2::kNumServices> read_counters_;
   std::string vin_number_;
   send_func_t send_packet_func_;
 

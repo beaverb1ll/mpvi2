@@ -42,6 +42,10 @@ bool EcuObd2::process_rx_packet(const CanMsg &msg) {
   return ret_val;
 }
 
+uint32_t EcuObd2::get_read_count(const Obd2::Services service, const uint8_t pid) {
+  return read_counters_[service][pid];
+}
+
 bool EcuObd2::process_obd(const CanMsg &msg) {
   bool ret_val = false;
   Obd2::Obd2Msg obd;
@@ -126,6 +130,8 @@ bool EcuObd2::process_service01(const Obd2::Obd2Msg &request, CanMsg &out) {
     return false;
   }
   out = response.to_can();
+
+  read_counters_[Obd2::kService01CurrentData][request.pid]++;
   return true;
 }
 
